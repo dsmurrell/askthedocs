@@ -1,0 +1,9 @@
+{
+  "name": "askthedocs",
+  "version": "0.1",
+  "author": "Daniel Murrell",
+  "dependencies": {},
+  "devDependencies": {
+    "serverless-python-requirements": "^5.3.1"
+  }
+}

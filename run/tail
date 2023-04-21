@@ -1,0 +1,1 @@
+sls logs --aws-profile deployment --function app --stage ask --startTime 30m -t | grep -Ev '(^2022|^START$|^END Duration|mangum.)'

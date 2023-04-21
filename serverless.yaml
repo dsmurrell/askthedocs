@@ -1,0 +1,43 @@
+service: ask-the-docs
+
+package:
+  individually: true
+
+provider:
+  name: aws
+  runtime: python3.9
+  region: eu-west-2
+  stage: ${opt:stage, "api"}
+
+plugins:
+  - serverless-python-requirements
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer:
+      name: askthedocs
+      description: Ask The Docs
+      compatibleRuntimes:
+        - python3.9
+
+functions:
+  app:
+    package:
+      patterns:
+        - 'main.py'
+        - '!requirements.txt'
+        - '!package.json'
+        - '!package-lock.json'
+        - '!.serverless/**'
+        - '!venv/**'
+        - '!node_modules/**'
+
+    handler: main.handler
+    environment:
+      STAGE: ${self:provider.stage}
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    events:
+      - http:
+          method: any
+          path: /{proxy+}
