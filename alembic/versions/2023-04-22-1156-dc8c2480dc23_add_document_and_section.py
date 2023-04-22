@@ -1,8 +1,8 @@
 """Add document and section
 
-Revision ID: c6e076350021
+Revision ID: dc8c2480dc23
 Revises:
-Create Date: 2023-04-22 00:13:24.388031
+Create Date: 2023-04-22 11:56:49.536282
 
 """
 import sqlalchemy as sa
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "c6e076350021"
+revision = "dc8c2480dc23"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,17 +21,18 @@ def upgrade() -> None:
     op.create_table(
         "documents",
         sa.Column("url", sa.Text(), nullable=False),
-        sa.Column("id", sa.String(length=255), nullable=False),
+        sa.Column("id", sa.String(length=22), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("id"),
         sa.UniqueConstraint("url"),
     )
     op.create_table(
         "sections",
         sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("document_id", sa.String(length=255), nullable=False),
-        sa.Column("id", sa.String(length=255), nullable=False),
+        sa.Column("document_id", sa.String(length=22), nullable=False),
+        sa.Column("id", sa.String(length=22), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
@@ -39,6 +40,7 @@ def upgrade() -> None:
             ["documents.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("id"),
     )
     # ### end Alembic commands ###
 
