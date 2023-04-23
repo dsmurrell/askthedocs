@@ -1,0 +1,5 @@
+[tool.ruff]
+line-length = 220
+
+# Assume Python 3.9.
+target-version = "py39"

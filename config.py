@@ -1,7 +1,11 @@
+import json
 import logging
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.middleware import Middleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from secret_config import s
 
@@ -40,11 +44,23 @@ def get_config():
     return config
 
 
+class JSONResponseMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        if isinstance(response, JSONResponse):
+            formatted_data = json.dumps(response.content, indent=2)
+            return JSONResponse(
+                content=formatted_data,
+                headers=response.headers,
+                media_type="application/json",
+            )
+        return response
+
+
 config = get_config()
 
 
 def create_app():
-    app = FastAPI(title="Ask The Docs")
+    app = FastAPI(title="Ask The Docs", middleware=[Middleware(JSONResponseMiddleware)])
     app.state.config = config
-    return app
     return app
