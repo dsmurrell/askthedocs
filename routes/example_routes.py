@@ -12,6 +12,7 @@ from starlette.responses import HTMLResponse, RedirectResponse
 from alchemy.database import get_db_session
 from deps import notion
 from services.notion import process_page
+from services.openai import fetch_and_save_embeddings, find_closest_sections
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,30 @@ def example_background_task():
         sleep(5)
 
     return False
+
+
+@router.get("/embedding-test")
+async def embedding_test(session: Session = Depends(get_db_session)):
+    fetch_and_save_embeddings(session)
+
+
+@router.get("/embedding-run")
+async def embedding_run(session: Session = Depends(get_db_session)):
+    find_closest_sections(session)
+
+
+#     res = openai.Embedding.create(
+#         input="""The idea is to have a day in the week where no internal meetings are booked and communications are kept as minimal as possible. This is to ensure all of us have a full day during the week to focus on getting work done without being interrupted by conversations/meetings. Just a few guidelines below:
+# - If you have recurring meetings on wednesdays please move them to another day of the week
+# - Please do not book a new internal meeting on a Wednesday
+# - Regarding external meetings - it is up to you to decide whether you want to group them the rest of the week to have that focused time or if you prefer using this day to get them done (that may be the case if having external conversations is a core part of your job)
+# - Please try to avoid communications on this day including emails/slack. You are welcome/encouraged to mute notification. You can tag on Notion and Github as people can check that at a later date and if you want to send an email schedule it for the next day if possible. We understand that in some cases you may be blocked to progress on things without speaking to someone else and in that case it is fine to slack/call but please use your judgement to keep that up to a minimum (i.e only if you are blocked - long conversations or debates on strategy/implementation are best kept another day)""",
+#         model="text-embedding-ada-002",
+#     )
+#     pretty_print_dict(res)
+#     embedding = res["data"][0]["embedding"]
+#     pretty_print_dict(embedding)
+#     print(len(embedding))
 
 
 @router.get("/notion-scraper")

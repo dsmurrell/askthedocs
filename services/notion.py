@@ -33,23 +33,6 @@ def extract_text(block):
     return text
 
 
-# def split_sections(text_blocks):
-#     sections = []
-#     current_section = []
-
-#     for text in text_blocks:
-#         if text.startswith("#"):
-#             if current_section and not all(line.isspace() for line in current_section):
-#                 sections.append("\n".join(current_section))
-#                 current_section = []
-#         current_section.append(text)
-
-#     if current_section and not all(line.isspace() for line in current_section):
-#         sections.append("\n".join(current_section))
-
-#     return sections
-
-
 def split_sections(text_blocks, min_chars=100, max_chars=1000):
     sections = []
     current_section = []
@@ -170,6 +153,4 @@ def process_page(session: Session, notion: NotionClient, page_id):
     for block in block_children:
         if block["type"] == "child_page":
             child_page_id = block["id"]
-            process_page(session, notion, child_page_id)
-            process_page(session, notion, child_page_id)
             process_page(session, notion, child_page_id)

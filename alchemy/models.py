@@ -1,9 +1,10 @@
 from datetime import datetime as dt
 
 import shortuuid
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import mapped_column, relationship
 
 Base = declarative_base()
 metadata = Base.metadata
@@ -40,6 +41,7 @@ class Section(BaseModel):
     __tablename__ = "sections"
 
     text = Column(Text, nullable=False)
+    embedding = mapped_column(Vector(1536))
     hash = Column(String(64), nullable=False, unique=True)
     number = Column(Integer, nullable=False)
     document_id = Column(String(22), ForeignKey("documents.id"), nullable=False)
