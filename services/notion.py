@@ -17,103 +17,6 @@ from helpers import compute_hash, pretty_print_dict
 logger = logging.getLogger(__name__)
 
 
-def extract_text(block):
-    try:
-        block_type = block["type"]
-
-        if block_type in ["paragraph", "to_do"]:
-            text = (
-                block[block_type]["rich_text"][0]["plain_text"]
-                if block[block_type]["rich_text"]
-                else ""
-            )
-        elif block_type in ["heading_1", "heading_2", "heading_3"]:
-            text = f"{'#' * int(block_type[-1])} {block[block_type]['rich_text'][0]['plain_text']}"
-        elif block_type == "bulleted_list_item":
-            text = f"- {block[block_type]['rich_text'][0]['plain_text']}"
-        else:
-            text = ""
-    except Exception as e:
-        print(block)
-        raise e
-
-    return text
-
-
-# def split_sections(text_blocks, min_chars=100, max_chars=1000):
-#     sections = []
-#     current_section = []
-
-#     def section_size(section):
-#         return sum(len(line) for line in section)
-
-#     for text in text_blocks:
-#         if text.startswith("#"):
-#             if current_section:
-#                 if section_size(current_section) > min_chars or not all(
-#                     line.isspace() for line in current_section
-#                 ):
-#                     sections.append("\n".join(current_section))
-#                     current_section = []
-#         current_section.append(text)
-
-#         if section_size(current_section) > max_chars:
-#             sections.append("\n".join(current_section))
-#             current_section = []
-
-#     if current_section and not all(line.isspace() for line in current_section):
-#         sections.append("\n".join(current_section))
-
-#     # Merge small sections
-#     merged_sections = []
-#     for section in sections:
-#         if len(section) < min_chars and merged_sections:
-#             merged_sections[-1] = "\n".join([merged_sections[-1], section])
-#         else:
-#             merged_sections.append(section)
-
-#     return merged_sections
-
-
-# def split_into_blocks(content):
-#     return content.split("\n\n")
-
-
-# def split_sections(text_blocks, min_chars=100, max_chars=1000):
-#     sections = []
-#     current_section = []
-
-#     def section_size(section):
-#         return sum(len(line) for line in section)
-
-#     for text in text_blocks:
-#         if text.startswith("#"):
-#             if current_section:
-#                 if section_size(current_section) > min_chars or not all(
-#                     line.isspace() for line in current_section
-#                 ):
-#                     sections.append("\n".join(current_section))
-#                     current_section = []
-#         current_section.append(text)
-
-#         if section_size(current_section) > max_chars:
-#             sections.append("\n".join(current_section))
-#             current_section = []
-
-#     if current_section and not all(line.isspace() for line in current_section):
-#         sections.append("\n".join(current_section))
-
-#     # Merge small sections
-#     merged_sections = []
-#     for section in sections:
-#         if len(section) < min_chars and merged_sections:
-#             merged_sections[-1] = "\n".join([merged_sections[-1], section])
-#         else:
-#             merged_sections.append(section)
-
-#     return merged_sections
-
-
 def save_page_to_database(session: Session, page, text, sections):
     try:
         document_hash = compute_hash(page)
@@ -177,53 +80,10 @@ def save_page_to_database(session: Session, page, text, sections):
         # raise e
 
 
-# def process_page_2(session: Session, notion: NotionClient, page_id):
-#     print(colored(f"Processing page with ID: {page_id}", "green"))
-#     try:
-#         page = notion.pages.retrieve(page_id)
-#     except Exception:
-#         print(colored(f"Error retrieving page with ID: {page_id}", "red"))
-#         return
-#     pretty_print_dict(page)
-#     block_children = notion.blocks.children.list(page_id)["results"]
-
-#     text_blocks = [extract_text(block) for block in block_children]
-#     text_blocks = list(filter(None, text_blocks))
-#     sections = split_sections(text_blocks)
-
-#     # for i, section in enumerate(sections):
-#     #     print(f"Section {i + 1}:\n{section}\n")
-
-#     # Save the page and sections to your database
-#     save_page_to_database(session, page, sections)
-
-#     # Recurse through the subpages
-#     for block in block_children:
-#         if block["type"] == "child_page":
-#             child_page_id = block["id"]
-#             process_page(session, notion, child_page_id)
-
-
-# def split_markdown_by_title(content):
-#     sections = {}
-#     titles = re.findall(r"^# (.*)", content, re.MULTILINE)
-#     split_content = re.split(r"^# .*", content, flags=re.MULTILINE)
-
-#     for index, title in enumerate(titles):
-#         sections[title] = split_content[index + 1].strip()
-#     return sections
-
-
 def read_markdown_file(filename):
     with open(filename, "r") as file:
         content = file.read()
     return content
-
-
-# def split_md_sections(md_text, delimiter="##"):
-#     pattern = r"(^|\n){}".format(re.escape(delimiter))
-#     sections = re.split(pattern, md_text)
-#     return [section.strip() for section in sections if section.strip()]
 
 
 def split_md_sections(md_text, delimiter="##", min_chars=100, max_chars=1000):
@@ -283,11 +143,7 @@ def process_page(session: Session, notion: NotionClient, page_id):
         print(md_parser.render(section))
         print()
 
-    # pretty_print_dict(sections)
     print("------")
-
-    # for i, section in enumerate(sections):
-    #     print(f"Section {i + 1}:\n{section}\n")
 
     # Save the page and sections to your database
     save_page_to_database(session, page, text, sections)
