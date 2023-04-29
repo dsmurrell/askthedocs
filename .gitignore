@@ -3,4 +3,5 @@ secret_config.py
 /notes
 __pycache__
 /notion_output
+services/markdown_example.py
 

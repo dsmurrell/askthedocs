@@ -1,47 +1,7 @@
 import re
 import textwrap
 
-markdown_text = """
-<br/>
-
-<br/>
-
-# Device code flow
-
-❗ See note regarding implementation
-
-## Description
-
-Users should be prompted for a 6 digit "device code" after logging in. This is sent to the user by email. Once entered they should be logged in.
-
-This device code is not required in the same session where they have registered, as they are required to access their email already to complete the registration.
-
-On the server, the `validate_jwt()` now checks for a valid device cookie for all restriction decorators except where the device/login code entry is made. This ensures that the user is the old version of 'logged in' before entering their code. The new version of 'logged in' now includes a check for a valid device cookie on the FE.
-
-## Implementation
-
-This implementation uses a server org variable to "ring fence" the code login feature to the server running with an `org` of `bior`. Server checks for an environment variable (E.g. `org=bior`) at [various points in the auth flow](https://github.com/sanogenetics/sano/pull/6104/files#diff-4d8089ba84cb6336bb9681fbb6f7f2550ef641a586dfd21e7f408fd46d65ad8aR148). If not `bior` a valid device token is set in a `portal-device` cookie and therefore the user is not prompted for one. If `bior`, the user is required to have an existing  valid device token is set in a `portal-device` cookie or prompted to set one.
-
-When we have implemented decent UI + UX (user comms) in the `/client` client, and the `/admin` client, this ring fence will be removed. We think a good time to do this will be after the 100 user send out for BioResource as we can receive some user feedback through this process.
-
-### Local developement
-
-To set the server env to bior for local developement use:
-
-Linux/Mac
-
-	Server:  `run/server bior`
-
-	E2E Server: `run/server_e2e bior` 
-
-Windows
-
-	Server:  `run/server-win bior` 
-
-	E2E Server: `run/server_e2e-win bior` 
-
-
-"""
+from services.markdown_example import markdown_text
 
 
 def parse_markdown(document, title="Heading 0"):
@@ -106,8 +66,8 @@ def parse_markdown(document, title="Heading 0"):
 
 
 # Maximum length of content in a node
-MAX_CONTENT_LENGTH = 500
-OVERLAP_LENGTH = 50
+MAX_CONTENT_LENGTH = 1000
+OVERLAP_LENGTH = 100
 
 
 def split_long_content(content, level, breadcrumbs, overlap=OVERLAP_LENGTH):
