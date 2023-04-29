@@ -2,3 +2,5 @@ secret_config.py
 /venv
 /notes
 __pycache__
+/notion_output
+

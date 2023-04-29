@@ -34,6 +34,7 @@ class Document(BaseModel):
     url = Column(Text, nullable=False, unique=True)
     hash = Column(String(64), nullable=False, unique=True)
     title = Column(Text, nullable=True)
+    text = Column(Text)
     sections = relationship("Section", back_populates="document")
 
 
@@ -47,3 +48,14 @@ class Section(BaseModel):
     document_id = Column(String(22), ForeignKey("documents.id"), nullable=False)
 
     document = relationship("Document", back_populates="sections")
+
+
+class Node(BaseModel):
+    __tablename__ = "nodes"
+
+    title = Column(Text, nullable=True)
+    text = Column(Text)
+    depth_level = Column(Integer, nullable=False)
+    parent_id = Column(String(22), ForeignKey("nodes.id"), nullable=True)
+
+    parent = relationship("Node", remote_side=lambda: Node.id, backref="children")

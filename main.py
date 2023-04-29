@@ -1,4 +1,5 @@
 import logging
+import threading
 from time import time
 
 import coloredlogs
@@ -10,6 +11,7 @@ from alchemy.schema_migration import perform_schema_migrations
 from config import create_app
 from plotting import plot_text_lengths_density
 from routes import example_routes
+from services.slack import start_slack_bot
 
 logger = logging.getLogger(__name__)
 format_string = (
@@ -50,6 +52,13 @@ async def info(request: Request, call_next):
     )
     response.headers["X-Process-Time"] = str(process_time)
     return response
+
+
+@app.on_event("startup")
+async def startup_event():
+    # Start the Slack bot in a separate thread
+    bot_thread = threading.Thread(target=start_slack_bot, daemon=True)
+    bot_thread.start()
 
 
 handler = Mangum(app)
