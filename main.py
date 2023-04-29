@@ -11,7 +11,7 @@ from alchemy.schema_migration import perform_schema_migrations
 from config import create_app
 from plotting import plot_text_lengths_density
 from routes import test
-from services.markdown import print_node
+from services.markdown import update_content
 from services.slack import start_slack_bot
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ async def startup_event():
 @app.on_event("startup")
 async def test():
     if False:
-        print_node()
+        update_content()
     # Test something!!
     # test_parse_markdown()
     # get an idea of the distribution of text lengths

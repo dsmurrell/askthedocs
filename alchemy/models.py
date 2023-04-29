@@ -32,6 +32,8 @@ class Document(BaseModel):
     __tablename__ = "documents"
 
     url = Column(Text, nullable=False, unique=True)
+    # notion page id for example
+    external_id = Column(String(64), nullable=True, unique=True)
     hash = Column(String(64), nullable=False, unique=True)
     title = Column(Text, nullable=True)
     text = Column(Text)

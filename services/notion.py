@@ -17,7 +17,7 @@ from helpers import compute_hash, pretty_print_dict
 logger = logging.getLogger(__name__)
 
 
-def save_page_to_database(session: Session, page, text, sections):
+def save_page_to_database(session: Session, page_id, page, text, sections):
     try:
         document_hash = compute_hash(page)
         # Check if the page with the same hash already exists in the database
@@ -31,10 +31,12 @@ def save_page_to_database(session: Session, page, text, sections):
             # If the page already exists, update its title, URL, and text
             document.title = page["properties"]["title"]["title"][0]["plain_text"]
             document.url = page["url"]
+            document.external_id = page_id
             text = text
         else:
             # If the page doesn't exist, create a new Document object and add it to the session
             document = Document(
+                external_id=page_id,
                 url=page["url"],
                 title=page["properties"]["title"]["title"][0]["plain_text"],
                 hash=document_hash,
@@ -146,7 +148,7 @@ def process_page(session: Session, notion: NotionClient, page_id):
     print("------")
 
     # Save the page and sections to your database
-    save_page_to_database(session, page, text, sections)
+    save_page_to_database(session, page_id, page, text, sections)
 
     # Recurse through the subpages
     block_children = notion.blocks.children.list(page_id)["results"]

@@ -1,126 +1,63 @@
-# import re
-
-# from termcolor import colored
-
-# markdown_text = """We use [CodeCov](https://codecov.io/) to monitor changes to our test coverage. There is a handy browser extension to view coverage gutters directly in GitHub.
-
-# 1) You'll need to use Chrome
-
-# 2) Install the [Sourcegraph Chrome extension](https://chrome.google.com/webstore/detail/sourcegraph/dgjhfomjieaadpoljlnidmbgkdffpack?hl=en)
-
-# 3) Enable the [CodeCov extension](https://sourcegraph.com/extensions/sourcegraph/codecov) on Sourcegraph
-
-# 4) Click the burger bar at the top of the Sano GitHub repository
-
-# ![Screen_Recording_2020-05-19_at_11.06.02.mov](441e009b_Screen_Recording_2020-05-19_at_11.06.02.mov.gif)
-
-# 5) Enter your API key from CodeCov
-
-# <br/>
-
-# You should now be able to view coverage gutters:
-
-# <br/>
-
-# ![Untitled.mov](a96dcf5d_Untitled.mov.gif)
-
-# []()
-
-# <br/>
-
-# """
-
-
-# def parse_markdown(document):
-#     # Regular expressions for detecting headings and content
-#     section_regex = re.compile(r"^##\s(.*)$", re.MULTILINE)
-#     subsection_regex = re.compile(r"^###\s(.*)$", re.MULTILINE)
-
-#     # Find the sections
-#     sections = section_regex.split(document)[1:]
-
-#     # Organize sections into a dictionary
-#     parsed_sections = []
-
-#     for i in range(0, len(sections), 2):
-#         title = sections[i]
-#         content = sections[i + 1]
-
-#         # Find the subsections
-#         subsections = subsection_regex.split(content)[1:]
-
-#         parsed_subsections = []
-
-#         for j in range(0, len(subsections), 2):
-#             sub_title = subsections[j]
-#             sub_content = subsections[j + 1]
-
-#             parsed_subsections.append(
-#                 {"title": sub_title, "content": sub_content.strip()}
-#             )
-
-#         parsed_sections.append(
-#             {
-#                 "title": title,
-#                 "content": content.strip(),
-#                 "subsections": parsed_subsections,
-#             }
-#         )
-
-#     return parsed_sections
-
-
-# def test_parse_markdown():
-#     print(markdown_text)
-
-#     print("parsing markdown")
-
-#     # Parse the document
-#     sections = parse_markdown(markdown_text)
-
-#     # Print the parsed sections
-#     for section in sections:
-#         print(colored(f"Section: {section['title']}", "green"))
-#         for subsection in section["subsections"]:
-#             print(colored(f"   Subsection: {subsection['title']}", "red"))
-#             print(f"      Content: {subsection['content']}")
-#         print("\n")
-
-
 import re
 
 markdown_text = """
-Note we initially started working in this Notion location: [https://www.notion.so/sanogenetics/Implement-Study-Survey-versioning-3603755460d5465b9b1c3f06b0936e23](https://www.notion.so/sanogenetics/Implement-Study-Survey-versioning-3603755460d5465b9b1c3f06b0936e23)
-
-# 📄Portal Documentation:
-
-[//]: # (child_page is not supported)
-
-Portal Participant Documentation [[The Flowsel](/d53b54c66fb34d60acba89c743785ce8)] 
+<br/>
 
 <br/>
 
-# 🕰Planning and discussions:
+# Device code flow
 
-[//]: # (child_page is not supported)
+❗ See note regarding implementation
 
-[//]: # (child_page is not supported)
+## Description
 
-[//]: # (child_page is not supported)
+Users should be prompted for a 6 digit "device code" after logging in. This is sent to the user by email. Once entered they should be logged in.
+
+This device code is not required in the same session where they have registered, as they are required to access their email already to complete the registration.
+
+On the server, the `validate_jwt()` now checks for a valid device cookie for all restriction decorators except where the device/login code entry is made. This ensures that the user is the old version of 'logged in' before entering their code. The new version of 'logged in' now includes a check for a valid device cookie on the FE.
+
+## Implementation
+
+This implementation uses a server org variable to "ring fence" the code login feature to the server running with an `org` of `bior`. Server checks for an environment variable (E.g. `org=bior`) at [various points in the auth flow](https://github.com/sanogenetics/sano/pull/6104/files#diff-4d8089ba84cb6336bb9681fbb6f7f2550ef641a586dfd21e7f408fd46d65ad8aR148). If not `bior` a valid device token is set in a `portal-device` cookie and therefore the user is not prompted for one. If `bior`, the user is required to have an existing  valid device token is set in a `portal-device` cookie or prompted to set one.
+
+When we have implemented decent UI + UX (user comms) in the `/client` client, and the `/admin` client, this ring fence will be removed. We think a good time to do this will be after the 100 user send out for BioResource as we can receive some user feedback through this process.
+
+### Local developement
+
+To set the server env to bior for local developement use:
+
+Linux/Mac
+
+	Server:  `run/server bior`
+
+	E2E Server: `run/server_e2e bior` 
+
+Windows
+
+	Server:  `run/server-win bior` 
+
+	E2E Server: `run/server_e2e-win bior` 
+
+
 """
 
 
-def parse_markdown(document):
+def parse_markdown(document, title="Document"):
     # Regular expressions for detecting headings and content
-    heading_regex = re.compile(r"^(#+)\s(.*)$", re.MULTILINE)
+    regex = re.compile(r"^(#+)\s(.*)$", re.MULTILINE)
+
+    # Regular expressions for detecting headings or dates - this didn't work at all
+    # regex = re.compile(r"((^#+\s.*)|\(\d{4}-\d{2}-\d{2}\))", re.MULTILINE)
 
     # Find the headings and their levels
-    headings = heading_regex.findall(document)
+    headings = regex.findall(document)
 
     # Initialize the root node
     root_node = {
-        "title": "Document",
+        "title": title,
         "content": document.strip(),
+        "length": len(document.strip()),
         "level": 0,
         "children": [],
     }
@@ -158,6 +95,7 @@ def parse_markdown(document):
         node = {
             "title": title,
             "content": content,
+            "length": len(content),
             "level": level,
             "children": [],
         }
@@ -165,25 +103,6 @@ def parse_markdown(document):
         add_node(root_node, node)
 
     return root_node
-
-
-def print_node(node, indent=0):
-    print("  " * indent + f"Level {node['level']} {node['title']}")
-    print("  " * (indent + 1) + f"Content: {node['content']}")
-    print()
-    if node["children"]:
-        for child in node["children"]:
-            print_node(child, indent + 1)
-
-
-# def get_full_content(node):
-#     if not node["children"]:
-#         return node["content"]
-#     else:
-#         child_contents = "\n\n".join(
-#             get_full_content(child) for child in node["children"]
-#         )
-#         return f"{node['content']}\n\n{child_contents}"
 
 
 def update_content(node):
@@ -194,6 +113,7 @@ def update_content(node):
             update_content(child) for child in node["children"]
         )
         node["content"] = f"{node['content']}\n\n{child_contents}"
+        node["length"] = len(node["content"])
         return node["content"]
 
 
