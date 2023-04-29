@@ -1,4 +1,5 @@
 import re
+import textwrap
 
 markdown_text = """
 <br/>
@@ -104,11 +105,89 @@ def parse_markdown(document, title="Heading 0"):
     return root_node
 
 
+# Maximum length of content in a node
+MAX_CONTENT_LENGTH = 500
+OVERLAP_LENGTH = 50
+
+
+def split_long_content(content, level, breadcrumbs, overlap=OVERLAP_LENGTH):
+    wrapper = textwrap.TextWrapper(
+        width=MAX_CONTENT_LENGTH - overlap, break_long_words=False
+    )
+    wrapped_content = wrapper.wrap(content)
+
+    chunks = []
+    start = 0
+    end = MAX_CONTENT_LENGTH
+
+    for i, chunk in enumerate(wrapped_content):
+        if i == 0:
+            chunks.append(chunk)
+            end = start + len(chunk)
+        else:
+            end = start + len(chunk) + overlap
+            chunks.append(content[start:end])
+
+        start = end - overlap
+
+    nodes = []
+    for idx, chunk in enumerate(chunks):
+        # Don't include the last breadcrumb for the first part
+        content_breadcrumbs = (
+            ">".join(breadcrumbs.split(">"))
+            if idx > 0
+            else ">".join(breadcrumbs.split(">")[:-1])
+        )
+        content = f"{content_breadcrumbs}\n{chunk}"
+        node = {
+            "title": f"Part {idx + 1}",
+            "content": content,
+            "length": len(chunk) + len(content_breadcrumbs),
+            "level": level,
+            "children": [],
+            "breadcrumbs": breadcrumbs + f" > Part {idx + 1}",
+        }
+        nodes.append(node)
+
+    return nodes
+
+
+# def split_long_content(content, level, breadcrumbs):
+#     chunks = [
+#         content[i : i + MAX_CONTENT_LENGTH]
+#         for i in range(0, len(content), MAX_CONTENT_LENGTH)
+#     ]
+#     nodes = []
+#     for idx, chunk in enumerate(chunks):
+#         node = {
+#             "title": f"Part {idx + 1}",
+#             "content": chunk,
+#             "length": len(chunk),
+#             "level": level,
+#             "children": [],
+#             "breadcrumbs": breadcrumbs + f" > Part {idx + 1}",
+#         }
+#         nodes.append(node)
+#     return nodes
+
+
+def add_breadcrumbs(node, breadcrumbs):
+    node["breadcrumbs"] = breadcrumbs
+    node["content"] = f"{node['breadcrumbs']}\n{node['content']}"
+    node["length"] = len(node["content"])
+
+
 def update_content(node, breadcrumbs):
     if not node["children"]:
-        node["breadcrumbs"] = breadcrumbs
-        node["content"] = f"{node['breadcrumbs']}\n{node['content']}"
-        node["length"] = len(node["content"])
+        # add_breadcrumbs(node, breadcrumbs)
+
+        if node["length"] > MAX_CONTENT_LENGTH:
+            node["children"] = split_long_content(
+                node["content"], node["level"] + 1, breadcrumbs + " > " + node["title"]
+            )
+
+        add_breadcrumbs(node, breadcrumbs)
+
         return node["content"]
     else:
         child_contents = "\n\n".join(
@@ -118,6 +197,22 @@ def update_content(node, breadcrumbs):
         node["content"] = f"{node['content']}\n\n{child_contents}"
         node["length"] = len(node["content"])
         return node["content"]
+
+
+# def update_content(node, breadcrumbs):
+#     if not node["children"]:
+#         node["breadcrumbs"] = breadcrumbs
+#         node["content"] = f"{node['breadcrumbs']}\n{node['content']}"
+#         node["length"] = len(node["content"])
+#         return node["content"]
+#     else:
+#         child_contents = "\n\n".join(
+#             update_content(child, breadcrumbs + " > " + node["title"])
+#             for child in node["children"]
+#         )
+#         node["content"] = f"{node['content']}\n\n{child_contents}"
+#         node["length"] = len(node["content"])
+#         return node["content"]
 
 
 # Parse the document
