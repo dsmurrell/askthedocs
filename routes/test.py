@@ -8,10 +8,11 @@ from notion_client import Client as NotionClient
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
-from termcolor import colored
 
 from alchemy.database import get_db_session
 from deps import notion
+
+# from services.markdown import test_parse_markdown
 from services.notion import process_page
 from services.openai import fetch_and_save_embeddings, find_closest_sections
 
@@ -44,95 +45,9 @@ async def embedding_run(session: Session = Depends(get_db_session)):
     find_closest_sections(session)
 
 
-markdown_text = """We use [CodeCov](https://codecov.io/) to monitor changes to our test coverage. There is a handy browser extension to view coverage gutters directly in GitHub.
-
-1) You'll need to use Chrome
-
-2) Install the [Sourcegraph Chrome extension](https://chrome.google.com/webstore/detail/sourcegraph/dgjhfomjieaadpoljlnidmbgkdffpack?hl=en)
-
-3) Enable the [CodeCov extension](https://sourcegraph.com/extensions/sourcegraph/codecov) on Sourcegraph
-
-4) Click the burger bar at the top of the Sano GitHub repository
-
-![Screen_Recording_2020-05-19_at_11.06.02.mov](441e009b_Screen_Recording_2020-05-19_at_11.06.02.mov.gif)
-
-5) Enter your API key from CodeCov
-
-<br/>
-
-You should now be able to view coverage gutters:
-
-<br/>
-
-![Untitled.mov](a96dcf5d_Untitled.mov.gif)
-
-[]()
-
-<br/>
-
-"""
-
-
-import re
-
-
-def parse_markdown(document):
-    # Regular expressions for detecting headings and content
-    section_regex = re.compile(r"^##\s(.*)$", re.MULTILINE)
-    subsection_regex = re.compile(r"^###\s(.*)$", re.MULTILINE)
-
-    # Find the sections
-    sections = section_regex.split(document)[1:]
-
-    # Organize sections into a dictionary
-    parsed_sections = []
-
-    for i in range(0, len(sections), 2):
-        title = sections[i]
-        content = sections[i + 1]
-
-        # Find the subsections
-        subsections = subsection_regex.split(content)[1:]
-
-        parsed_subsections = []
-
-        for j in range(0, len(subsections), 2):
-            sub_title = subsections[j]
-            sub_content = subsections[j + 1]
-
-            parsed_subsections.append(
-                {"title": sub_title, "content": sub_content.strip()}
-            )
-
-        parsed_sections.append(
-            {
-                "title": title,
-                "content": content.strip(),
-                "subsections": parsed_subsections,
-            }
-        )
-
-    return parsed_sections
-
-
-@router.get("/refactor")
-async def refactor(session: Session = Depends(get_db_session)):
-    # populate_db_with_nodes(markdown_text, session)
-
-    print(markdown_text)
-
-    print("parsing markdown")
-
-    # Parse the document
-    sections = parse_markdown(markdown_text)
-
-    # Print the parsed sections
-    for section in sections:
-        print(colored(f"Section: {section['title']}", "green"))
-        for subsection in section["subsections"]:
-            print(colored(f"   Subsection: {subsection['title']}", "red"))
-            print(f"      Content: {subsection['content']}")
-        print("\n")
+# @router.get("/refactor")
+# async def refactor(session: Session = Depends(get_db_session)):
+#     test_parse_markdown()
 
 
 #     res = openai.Embedding.create(
@@ -275,6 +190,4 @@ def error_example():
 async def post_example(request: Request):
     content = await request.body()
     data = json.loads(content)
-    return HTMLResponse(content="<pre>" + data["param"] + "</pre>")
-    return HTMLResponse(content="<pre>" + data["param"] + "</pre>")
     return HTMLResponse(content="<pre>" + data["param"] + "</pre>")

@@ -1,4 +1,6 @@
 ruff==0.0.262
 black==23.3.0
+pytest==7.3.1
+httpx==0.24.0
 matplotlib==3.7.1
 seaborn==0.12.2
