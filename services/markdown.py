@@ -43,12 +43,9 @@ Windows
 """
 
 
-def parse_markdown(document, title="Document"):
+def parse_markdown(document, title="Heading 0"):
     # Regular expressions for detecting headings and content
     regex = re.compile(r"^(#+)\s(.*)$", re.MULTILINE)
-
-    # Regular expressions for detecting headings or dates - this didn't work at all
-    # regex = re.compile(r"((^#+\s.*)|\(\d{4}-\d{2}-\d{2}\))", re.MULTILINE)
 
     # Find the headings and their levels
     headings = regex.findall(document)
@@ -60,6 +57,7 @@ def parse_markdown(document, title="Document"):
         "length": len(document.strip()),
         "level": 0,
         "children": [],
+        "breadcrumbs": title,
     }
 
     # Function to add a node to the hierarchy
@@ -98,6 +96,7 @@ def parse_markdown(document, title="Document"):
             "length": len(content),
             "level": level,
             "children": [],
+            "breadcrumbs": "",
         }
 
         add_node(root_node, node)
@@ -105,12 +104,16 @@ def parse_markdown(document, title="Document"):
     return root_node
 
 
-def update_content(node):
+def update_content(node, breadcrumbs):
     if not node["children"]:
+        node["breadcrumbs"] = breadcrumbs
+        node["content"] = f"{node['breadcrumbs']}\n{node['content']}"
+        node["length"] = len(node["content"])
         return node["content"]
     else:
         child_contents = "\n\n".join(
-            update_content(child) for child in node["children"]
+            update_content(child, breadcrumbs + " > " + node["title"])
+            for child in node["children"]
         )
         node["content"] = f"{node['content']}\n\n{child_contents}"
         node["length"] = len(node["content"])
@@ -122,9 +125,90 @@ document_node = parse_markdown(markdown_text)
 
 # Update each child node with the full subtree text
 for child_node in document_node["children"]:
-    update_content(child_node)
+    update_content(child_node, document_node["title"])
 
 print(document_node)
+
+
+# def parse_markdown(document, title="Document"):
+#     # Regular expressions for detecting headings and content
+#     regex = re.compile(r"^(#+)\s(.*)$", re.MULTILINE)
+
+#     # Find the headings and their levels
+#     headings = regex.findall(document)
+
+#     # Initialize the root node
+#     root_node = {
+#         "title": title,
+#         "content": document.strip(),
+#         "length": len(document.strip()),
+#         "level": 0,
+#         "children": [],
+#     }
+
+#     # Function to add a node to the hierarchy
+#     def add_node(parent, node):
+#         if not parent["children"]:
+#             parent["children"].append(node)
+#         else:
+#             last_child = parent["children"][-1]
+#             if last_child["level"] < node["level"]:
+#                 add_node(last_child, node)
+#             else:
+#                 parent["children"].append(node)
+
+#     def get_subtree_content(document, start_index, end_index):
+#         return document[start_index:end_index].strip()
+
+#     # Add nodes to the hierarchy
+#     for index, heading in enumerate(headings):
+#         level = len(heading[0])
+#         title = heading[1]
+
+#         # Find the content of the heading
+#         start_index = document.find(heading[0] + " " + title)
+#         if index + 1 < len(headings):
+#             end_index = document.find(
+#                 "\n" + headings[index + 1][0] + " ", start_index + 1
+#             )
+#         else:
+#             end_index = len(document)
+
+#         content = get_subtree_content(document, start_index, end_index)
+
+#         node = {
+#             "title": title,
+#             "content": content,
+#             "length": len(content),
+#             "level": level,
+#             "children": [],
+#         }
+
+#         add_node(root_node, node)
+
+#     return root_node
+
+
+# def update_content(node):
+#     if not node["children"]:
+#         return node["content"]
+#     else:
+#         child_contents = "\n\n".join(
+#             update_content(child) for child in node["children"]
+#         )
+#         node["content"] = f"{node['content']}\n\n{child_contents}"
+#         node["length"] = len(node["content"])
+#         return node["content"]
+
+
+# # Parse the document
+# document_node = parse_markdown(markdown_text)
+
+# # Update each child node with the full subtree text
+# for child_node in document_node["children"]:
+#     update_content(child_node)
+
+# print(document_node)
 
 
 from helpers import pretty_print_dict
