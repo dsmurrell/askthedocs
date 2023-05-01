@@ -11,7 +11,7 @@ from alchemy.database import get_db_session
 from alchemy.models import Document, Node
 from alchemy.schema_migration import perform_schema_migrations
 from config import create_app
-from helpers import preprocess_text, remove_html_tags
+from helpers import clean_text, preprocess_text, remove_html_tags
 from plotting import plot_text_lengths_density
 from routes import test
 from services.markdown import update_nodes
@@ -71,42 +71,42 @@ async def plot_density():
 
 @app.on_event("startup")
 async def test():
-    # try:
-    #     # Clean the text of the documents
-    #     print("Cleaning document text...")
-    #     documents = session.query(Document).all()
-    #     print(len(documents))
-    #     for i, document in enumerate(documents):
-    #         document.text_no_html = remove_html_tags(document.text)
-    #         if i % 100 == 0:
-    #             print(i)
-    #         sys.stdout.write(".")
-    #         sys.stdout.flush()
-    #     session.commit()
-    #     print("Done")
+    try:
+        # # Clean the text of the documents
+        # print("Cleaning document text...")
+        # documents = session.query(Document).all()
+        # print(len(documents))
+        # for i, document in enumerate(documents):
+        #     document.text_no_html = remove_html_tags(document.text)
+        #     if i % 100 == 0:
+        #         print(i)
+        #     sys.stdout.write(".")
+        #     sys.stdout.flush()
+        # session.commit()
+        # print("Done")
 
-    #     print("Updating nodes...")
-    #     update_nodes(session)
+        # print("Updating nodes...")
+        # update_nodes(session)
 
-    #     print("Cleaning node text...")
-    #     # Clean the text of the nodes
-    #     nodes = session.query(Node).all()
-    #     print(len(nodes))
-    #     for i, node in enumerate(nodes):
-    #         node.text_processed = preprocess_text(node.text)
-    #         if i % 100 == 0:
-    #             print(i)
-    #         sys.stdout.write(".")
-    #         sys.stdout.flush()
-    #     session.commit()
-    #     print("Done")
+        # print("Cleaning node text...")
+        # # Clean the text of the nodes
+        # nodes = session.query(Node).all()
+        # print(len(nodes))
+        # for i, node in enumerate(nodes):
+        #     # node.text_processed = preprocess_text(node.text)
+        #     node.text_cleaned = clean_text(node.text)
+        #     if i % 100 == 0:
+        #         print(i)
+        #     sys.stdout.write(".")
+        #     sys.stdout.flush()
+        # session.commit()
+        print("Done")
 
-    # except Exception as e:
-    #     print(f"An error occurred: {e}")
-    #     session.rollback()
-    # finally:
-    #     session.close()
-    pass
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        session.rollback()
+    finally:
+        session.close()
 
 
 handler = Mangum(app)

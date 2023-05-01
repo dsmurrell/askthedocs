@@ -101,4 +101,3 @@ def command_handler(body, say):
 def start_slack_bot():
     handler = SocketModeHandler(app, config["slack_app_token"])
     handler.start()
-    handler.start()

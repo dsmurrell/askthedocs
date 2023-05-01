@@ -3,7 +3,7 @@ import sys
 import time
 
 import openai
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 from termcolor import colored
 
@@ -82,7 +82,8 @@ def find_closest_nodes(session: Session, query: str):
     query = session.execute(
         select(Node)
         .add_columns(distance_expression.label("distance"))
-        .where(Node.text_length < 1500)
+        # .where(Node.text_length < 3000)
+        .where(and_(Node.text_length < 3000, Node.text_length > 200))
         .order_by(distance_expression)
         .limit(match_count)
     )
@@ -98,6 +99,7 @@ def find_closest_nodes(session: Session, query: str):
         print("Document URL:", colored(node.document.url, "green"))
         print("Node Distance:", colored(distance, "green"))
         print("Node Text Length:", colored(node.text_length, "green"))
+        print("Node Text Cleaned:", colored(node.text_cleaned, "yellow"))
         # print(node.text)
         print("----------------------------------------")
 
@@ -134,7 +136,40 @@ def get_first_completion(query: str, context: str):
         },
         {
             "role": "user",
-            "content": f"""Given the following sections from the Sano Genetics documentation, answer the question using only that information. Please add URLs if you mention them to your response. If you are unsure and the answer is not explicitly written in the documentation, say "Sorry, don't know how to help with that."
+            "content": f"""Given the following sections from the Sano Genetics documentation, answer the question using only that information. If you are unsure and the answer is not explicitly written in the documentation, say "Sorry, don't know how to help with that."
+
+Context sections:
+{context}
+
+Question:
+\"\"\"
+{query}
+\"\"\"
+""",
+        },
+    ]
+
+    print(messages)
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
+    )
+
+    print(response)
+
+    return response["choices"][0]["message"]["content"]
+
+
+def get_second_completion(query: str, context: str):
+    messages = [
+        {
+            "role": "system",
+            "content": """You are a very enthusiastic Sano Genetics representative who loves quote the sections that will help people the most.""",
+        },
+        {
+            "role": "user",
+            "content": f"""Given the following sections from the Sano Genetics documentation, respond strictly in the format [x, y] where these are the number of the sections that help answer the question the most. A program will use the answer... so make sure to adhere strictly to the format [x, y] where x and y are section numbers from 1 to 10. Only provide the two most useful section numbers.
 
 Context sections:
 {context}
@@ -181,12 +216,35 @@ def get_query_response(session: Session, query_string: str):
     )
 
     # Iterate through the Section objects and append the text field to the context string.
-    for node in closest_nodes:
-        context_string += node.text + separator
+    for i, node in enumerate(closest_nodes):
+        context_string += f"{i+1}> {node.text_cleaned} \n\n"
 
     # Remove the trailing separator.
     context_string = context_string.rstrip(separator)
 
     print("Context String:", colored(context_string, "yellow"))
 
-    return get_first_completion(stripped_query, context_string)
+    first_completion = get_first_completion(stripped_query, context_string)
+
+    try:
+        second_completion = get_second_completion(stripped_query, context_string)
+
+        # Remove the brackets and split the string by commas
+        numbers_str = second_completion.strip("[]").split(",")
+
+        # Convert the list of strings into a list of integers
+        vector_of_ints = [int(number.strip()) for number in numbers_str]
+
+        useful_urls = []
+        for num in vector_of_ints:
+            useful_urls.append(closest_nodes[num - 1].document.url)
+        useful_urls_string = ""
+        for url in set(useful_urls):
+            useful_urls_string += url + "\n"
+
+        if "sorry" not in first_completion.lower():
+            first_completion += "\n\n" + "Source:\n" + useful_urls_string
+    except:
+        pass
+
+    return first_completion
