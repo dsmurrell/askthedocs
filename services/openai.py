@@ -9,6 +9,7 @@ from termcolor import colored
 
 from alchemy.models import Node
 from config import config
+from helpers import preprocess_text
 
 openai.api_key = config["openai_key"]
 
@@ -18,13 +19,15 @@ def fetch_and_save_embeddings(session: Session):
     nodes_without_embedding = session.query(Node).filter(Node.embedding.is_(None)).all()
     sys.stdout.write(f"Fetching embeddings for {len(nodes_without_embedding)} nodes...")
 
-    for node in nodes_without_embedding:
+    for i, node in enumerate(nodes_without_embedding):
         sys.stdout.write(".")
         sys.stdout.flush()
+        if i % 100 == 0:
+            print(i)
         if len(node.text) < 4000:
             # Fetch an embedding for the node
             res = openai.Embedding.create(
-                input=node.text,
+                input=node.text_processed,
                 model="text-embedding-ada-002",
             )
             embedding = res["data"][0]["embedding"]
@@ -39,13 +42,17 @@ def fetch_and_save_embeddings(session: Session):
 
 
 def find_closest_nodes(session: Session, query: str):
+    print("Original Query:", colored(query, "red"))
+    processed_query = preprocess_text(query)
+    print("Processed Query:", colored(processed_query, "blue"))
+
     res = openai.Embedding.create(
-        input=query,
+        input=processed_query,
         model="text-embedding-ada-002",
     )
     query_embedding = res["data"][0]["embedding"]
 
-    match_count = 30
+    match_count = 10
     similarity_threshold = 0.75
     similarity_threshold = 0.75
 
@@ -80,14 +87,18 @@ def find_closest_nodes(session: Session, query: str):
         .limit(match_count)
     )
 
+    # Execute the query and store the results in a variable
+    query_results = query.all()
+
     # Access the results
-    for result in query:
+    for result in query_results:
         node = result[0]
         distance = result[1]
-        print("Node ID:", colored(node.id, "green"))
+        print("Node text_processed:", colored(node.text_processed, "blue"))
+        print("Document URL:", colored(node.document.url, "green"))
         print("Node Distance:", colored(distance, "green"))
         print("Node Text Length:", colored(node.text_length, "green"))
-        print(node.text)
+        # print(node.text)
         print("----------------------------------------")
 
     # query = None
@@ -100,17 +111,17 @@ def find_closest_nodes(session: Session, query: str):
     # )
 
     # Execute the query and fetch the results
-    closest_nodes = query.all()
+    closest_nodes = [node for (node, distance) in query_results]
 
     total_word_count = sum(len(node.text.split()) for node in closest_nodes)
 
     print(f"Total word count: {total_word_count}")
 
-    # Print the results
-    for node in closest_nodes:
-        print(f"Node at distance: {node.embedding.l2_distance(query_embedding)}")
-        print(colored(node.text, "green"))
-        print("----------------------------------------")
+    # # Print the results
+    # for node in closest_nodes:
+    #     print(f"Node at distance: {node.embedding.l2_distance(query_embedding)}")
+    #     print(colored(node.text, "green"))
+    #     print("----------------------------------------")
 
     return closest_nodes
 
@@ -123,7 +134,7 @@ def get_first_completion(query: str, context: str):
         },
         {
             "role": "user",
-            "content": f"""Given the following sections from the Sano Genetics documentation, answer the question using only that information, outputted in Slack mrkdwn format. If you are unsure and the answer is not explicitly written in the documentation, say "Sorry, don't know how to help with that."
+            "content": f"""Given the following sections from the Sano Genetics documentation, answer the question using only that information. Please add URLs if you mention them to your response. If you are unsure and the answer is not explicitly written in the documentation, say "Sorry, don't know how to help with that."
 
 Context sections:
 {context}
@@ -148,8 +159,17 @@ Question:
     return response["choices"][0]["message"]["content"]
 
 
-def get_query_response(session: Session, query):
-    closest_nodes = find_closest_nodes(session, query)
+def get_query_response(session: Session, query_string: str):
+    # The pattern to match: <@ followed by a combination of uppercase letters and numbers, and then >
+    pattern = r"<@[A-Z0-9]+>"
+
+    # Substitute the pattern with an empty string
+    stripped_query = re.sub(pattern, "", query_string)
+
+    # Remove extra whitespace (if any)
+    stripped_query = " ".join(stripped_query.split())
+
+    closest_nodes = find_closest_nodes(session, stripped_query)
 
     # Initialize the context string.
 
@@ -167,15 +187,6 @@ def get_query_response(session: Session, query):
     # Remove the trailing separator.
     context_string = context_string.rstrip(separator)
 
-    # The pattern to match: <@ followed by a combination of uppercase letters and numbers, and then >
-    pattern = r"<@[A-Z0-9]+>"
+    print("Context String:", colored(context_string, "yellow"))
 
-    # Substitute the pattern with an empty string
-    stripped_query = re.sub(pattern, "", query)
-
-    # Remove extra whitespace (if any)
-    stripped_query = " ".join(stripped_query.split())
-
-    return "YO"
-
-    # return get_first_completion(stripped_query, context_string)
+    return get_first_completion(stripped_query, context_string)

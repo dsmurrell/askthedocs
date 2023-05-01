@@ -6,18 +6,18 @@ from alchemy.models import Document, Node
 from helpers import compute_hash
 
 
-def parse_markdown(document, title="Heading 0"):
+def parse_markdown(markdown, title="Heading 0"):
     # Regular expressions for detecting headings and content
     regex = re.compile(r"^(#+)\s(.*)$", re.MULTILINE)
 
     # Find the headings and their levels
-    headings = regex.findall(document)
+    headings = regex.findall(markdown)
 
     # Initialize the root node
     root_node = {
         "title": title,
-        "content": document.strip(),
-        "length": len(document.strip()),
+        "content": markdown.strip(),
+        "length": len(markdown.strip()),
         "level": 0,
         "children": [],
         "breadcrumbs": title,
@@ -34,8 +34,8 @@ def parse_markdown(document, title="Heading 0"):
             else:
                 parent["children"].append(node)
 
-    def get_subtree_content(document, start_index, end_index):
-        return document[start_index:end_index].strip()
+    def get_subtree_content(markdown, start_index, end_index):
+        return markdown[start_index:end_index].strip()
 
     # Add nodes to the hierarchy
     for index, heading in enumerate(headings):
@@ -43,15 +43,15 @@ def parse_markdown(document, title="Heading 0"):
         title = heading[1]
 
         # Find the content of the heading
-        start_index = document.find(heading[0] + " " + title)
+        start_index = markdown.find(heading[0] + " " + title)
         if index + 1 < len(headings):
-            end_index = document.find(
+            end_index = markdown.find(
                 "\n" + headings[index + 1][0] + " ", start_index + 1
             )
         else:
-            end_index = len(document)
+            end_index = len(markdown)
 
-        content = get_subtree_content(document, start_index, end_index)
+        content = get_subtree_content(markdown, start_index, end_index)
 
         node = {
             "title": title,
@@ -176,21 +176,9 @@ def add_node_to_db(session, node, document_id, parent_id=None):
 
 
 def update_nodes(session):
-    # # Parse the document
-    # document_node = parse_markdown(markdown_text)
-
-    # update_content(document_node, document_node["title"])
-
-    # # # Update each child node with the full subtree text
-    # # for child_node in document_node["children"]:
-    # #     update_content(child_node, document_node["title"])
-
-    # print(document_node)
-    # pretty_print_dict(document_node)
-
     for document in session.query(Document).all():
         # Parse the document
-        document_node = parse_markdown(document.text, document.title)
+        document_node = parse_markdown(document.text_no_html, document.title)
 
         # Update each child node with the full subtree text
         for child_node in document_node["children"]:

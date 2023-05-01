@@ -12,13 +12,14 @@ def plot_text_lengths_density(session: Session, output_file: str):
     # Calculate the lengths of the text for each node
     # text_lengths = [len(node.text) for node in nodes]
 
+    print("Printing nodes with word count > 4000")
     word_counts = []
     for node in nodes:
         word_count = len(node.text.split())
         if word_count < 1000:
             word_counts.append(word_count)
-        if word_count > 4000:
-            print(node.document.url)
+        # if word_count > 4000:
+        #     print(node.document.url)
 
     # word_counts = [len(node.text.split()) for node in nodes]
 
