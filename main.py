@@ -1,4 +1,5 @@
 import logging
+import sys
 import threading
 from time import time
 
@@ -7,11 +8,12 @@ from mangum import Mangum
 from starlette.requests import Request
 
 from alchemy.database import get_db_session
+from alchemy.models import Document
 from alchemy.schema_migration import perform_schema_migrations
 from config import create_app
+from helpers import remove_html_tags
 from plotting import plot_text_lengths_density
 from routes import test
-from services.markdown import update_content
 from services.slack import start_slack_bot
 
 logger = logging.getLogger(__name__)
@@ -33,7 +35,8 @@ test.init_app(app)
 logger.info("Ask the docs service started...")
 logger.info(app.state)
 
-perform_schema_migrations(app.state.config, get_db_session().__next__())
+session = get_db_session().__next__()
+perform_schema_migrations(app.state.config, session)
 
 
 @app.middleware("http")
@@ -57,16 +60,48 @@ async def startup_event():
 
 
 @app.on_event("startup")
-async def test():
-    if False:
-        update_content()
-    # Test something!!
-    # test_parse_markdown()
-    # get an idea of the distribution of text lengths
-    if False and app.state.config["env"] == "local":
+async def plot_density():
+    # Get an idea of the distribution of text lengths in nodes
+    if app.state.config["env"] == "local":
         print("Plotting text lengths density...")
         output_file = "notes/density_plot.png"
         plot_text_lengths_density(get_db_session().__next__(), output_file)
+
+
+@app.on_event("startup")
+async def test():
+    try:
+        # Clean the text of the documents
+        documents = session.query(Document).all()
+        print(len(documents))
+        for i, document in enumerate(documents):
+            document.text_no_html = remove_html_tags(document.text)
+            if i % 100 == 0:
+                print(i)
+            sys.stdout.write(".")
+            sys.stdout.flush()
+        session.commit()
+        print("Done")
+
+        # Clean the text of the nodes
+        nodes = session.query(Node).all()
+        print(len(nodes))
+        for i, node in enumerate(nodes):
+            node.text_cleaned = remove_html_tags(node.text)
+            if i % 100 == 0:
+                print(i)
+            sys.stdout.write(".")
+            sys.stdout.flush()
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        session.rollback()
+    finally:
+        session.close()
+
+    # # put the function you want to test at startup here
+    # if True:
+    #     update_nodes(session)
 
 
 handler = Mangum(app)

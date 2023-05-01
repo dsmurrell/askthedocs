@@ -1,7 +1,9 @@
 import re
+import sys
 import textwrap
 
-from services.markdown_example import markdown_text
+from alchemy.models import Document, Node
+from helpers import compute_hash
 
 
 def parse_markdown(document, title="Heading 0"):
@@ -112,25 +114,6 @@ def split_long_content(content, level, breadcrumbs, overlap=OVERLAP_LENGTH):
     return nodes
 
 
-# def split_long_content(content, level, breadcrumbs):
-#     chunks = [
-#         content[i : i + MAX_CONTENT_LENGTH]
-#         for i in range(0, len(content), MAX_CONTENT_LENGTH)
-#     ]
-#     nodes = []
-#     for idx, chunk in enumerate(chunks):
-#         node = {
-#             "title": f"Part {idx + 1}",
-#             "content": chunk,
-#             "length": len(chunk),
-#             "level": level,
-#             "children": [],
-#             "breadcrumbs": breadcrumbs + f" > Part {idx + 1}",
-#         }
-#         nodes.append(node)
-#     return nodes
-
-
 def add_breadcrumbs(node, breadcrumbs):
     node["breadcrumbs"] = breadcrumbs
     node["content"] = f"{node['breadcrumbs']}\n{node['content']}"
@@ -138,12 +121,12 @@ def add_breadcrumbs(node, breadcrumbs):
 
 
 def update_content(node, breadcrumbs):
-    if not node["children"]:
-        # add_breadcrumbs(node, breadcrumbs)
+    breadcrumbs_addition = (" > " + node["title"]) if node["level"] > 0 else ""
 
+    if not node["children"]:
         if node["length"] > MAX_CONTENT_LENGTH:
             node["children"] = split_long_content(
-                node["content"], node["level"] + 1, breadcrumbs + " > " + node["title"]
+                node["content"], node["level"] + 1, breadcrumbs + breadcrumbs_addition
             )
 
         add_breadcrumbs(node, breadcrumbs)
@@ -151,7 +134,7 @@ def update_content(node, breadcrumbs):
         return node["content"]
     else:
         child_contents = "\n\n".join(
-            update_content(child, breadcrumbs + " > " + node["title"])
+            update_content(child, breadcrumbs + breadcrumbs_addition)
             for child in node["children"]
         )
         node["content"] = f"{node['content']}\n\n{child_contents}"
@@ -159,31 +142,61 @@ def update_content(node, breadcrumbs):
         return node["content"]
 
 
-# def update_content(node, breadcrumbs):
-#     if not node["children"]:
-#         node["breadcrumbs"] = breadcrumbs
-#         node["content"] = f"{node['breadcrumbs']}\n{node['content']}"
-#         node["length"] = len(node["content"])
-#         return node["content"]
-#     else:
-#         child_contents = "\n\n".join(
-#             update_content(child, breadcrumbs + " > " + node["title"])
-#             for child in node["children"]
-#         )
-#         node["content"] = f"{node['content']}\n\n{child_contents}"
-#         node["length"] = len(node["content"])
-#         return node["content"]
+def add_node_to_db(session, node, document_id, parent_id=None):
+    node_hash = compute_hash(node["content"])
+
+    # Check if the node with the same hash already exists in the database
+    db_node = session.query(Node).filter_by(hash=node_hash).first()
+
+    if not db_node:
+        db_node = Node(
+            title=node["title"],
+            text=node["content"],
+            hash=node_hash,
+            text_length=node["length"],
+            depth_level=node["level"],
+            parent_id=parent_id,
+            document_id=document_id,
+        )
+        session.add(db_node)
+        session.flush()  # To get the generated id for the new node
+
+        for child in node.get("children", []):
+            add_node_to_db(session, child, document_id, db_node.id)
+
+        [compute_hash(child["content"]) for child in node.get("children", [])]
+
+        # Remove any old nodes that have the same parent but are not in the new tree
+        session.query(Node).filter(
+            Node.parent_id == db_node.id,
+            ~Node.hash.in_(
+                [compute_hash(child["content"]) for child in node.get("children", [])]
+            ),
+        ).delete(synchronize_session="fetch")
 
 
-# Parse the document
-document_node = parse_markdown(markdown_text)
+def update_nodes(session):
+    # # Parse the document
+    # document_node = parse_markdown(markdown_text)
 
-# Update each child node with the full subtree text
-for child_node in document_node["children"]:
-    update_content(child_node, document_node["title"])
+    # update_content(document_node, document_node["title"])
 
-print(document_node)
+    # # # Update each child node with the full subtree text
+    # # for child_node in document_node["children"]:
+    # #     update_content(child_node, document_node["title"])
 
-from helpers import pretty_print_dict
+    # print(document_node)
+    # pretty_print_dict(document_node)
 
-pretty_print_dict(document_node)
+    for document in session.query(Document).all():
+        # Parse the document
+        document_node = parse_markdown(document.text, document.title)
+
+        # Update each child node with the full subtree text
+        for child_node in document_node["children"]:
+            update_content(child_node, document_node["title"])
+
+        add_node_to_db(session, document_node, document.id)
+        session.commit()
+        sys.stdout.write(".")
+        sys.stdout.flush()

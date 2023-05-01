@@ -2,17 +2,25 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sqlalchemy.orm import Session
 
-from alchemy.models import Section
+from alchemy.models import Node
 
 
 def plot_text_lengths_density(session: Session, output_file: str):
-    # Query all the sections from the database
-    sections = session.query(Section).all()
+    # Query all the nodes from the database
+    nodes = session.query(Node).all()
 
-    # Calculate the lengths of the text for each section
-    # text_lengths = [len(section.text) for section in sections]
+    # Calculate the lengths of the text for each node
+    # text_lengths = [len(node.text) for node in nodes]
 
-    word_counts = [len(section.text.split()) for section in sections]
+    word_counts = []
+    for node in nodes:
+        word_count = len(node.text.split())
+        if word_count < 1000:
+            word_counts.append(word_count)
+        if word_count > 4000:
+            print(node.document.url)
+
+    # word_counts = [len(node.text.split()) for node in nodes]
 
     # Create the density plot using seaborn
     sns.set(style="whitegrid")
@@ -21,7 +29,7 @@ def plot_text_lengths_density(session: Session, output_file: str):
     # Set plot labels and title
     plt.xlabel("Word Count")
     plt.ylabel("Density")
-    plt.title("Density Plot of Wourd Counts in Sections")
+    plt.title("Density Plot of Wourd Counts in Nodes")
 
     # Save the plot to a file
     plt.savefig(output_file, dpi=300, bbox_inches="tight")

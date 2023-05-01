@@ -32,57 +32,57 @@ class Document(BaseModel):
     __tablename__ = "documents"
 
     url = Column(Text, nullable=False, unique=True)
-    # notion page id for example
-    external_id = Column(String(64), nullable=True, unique=True)
+    external_id = Column(String(64), nullable=False, unique=True)
     hash = Column(String(64), nullable=False, unique=True)
-    title = Column(Text, nullable=True)
+    title = Column(Text)
     text = Column(Text)
+    text_no_html = Column(Text)
     root_node = relationship("Node", uselist=False, back_populates="document")
 
 
 class Node(BaseModel):
     __tablename__ = "nodes"
 
-    title = Column(Text, nullable=True)
-    text = Column(Text, nullable=True)
+    title = Column(Text, nullable=False)
+    text = Column(Text, nullable=False)
+    text_cleaned = Column(Text)
+    text_processed = Column(Text)
+    embedding = mapped_column(Vector(1536))
+    hash = Column(String(64), nullable=False, unique=True)
+    text_length = Column(Integer, nullable=False)
     depth_level = Column(Integer, nullable=False, default=0)
-    parent_id = Column(String(22), ForeignKey("nodes.id"), nullable=True)
-    document_id = Column(String(22), ForeignKey("documents.id"), nullable=True)
+    parent_id = Column(String(22), ForeignKey("nodes.id"))
+    document_id = Column(String(22), ForeignKey("documents.id"))
 
     parent = relationship("Node", remote_side=lambda: Node.id, backref="children")
     document = relationship("Document", back_populates="root_node")
 
 
-# TODO: Remove below when node approach is implemented
-class Section(BaseModel):
-    __tablename__ = "sections"
+class User(BaseModel):
+    __tablename__ = "users"
+    username = Column(String(100), nullable=False, unique=True)
+    platform = Column(String(50), nullable=False)  # Discord, Telegram, Slack, etc.
 
-    text = Column(Text, nullable=False)
-    embedding = mapped_column(Vector(1536))
-    hash = Column(String(64), nullable=False, unique=True)
-    number = Column(Integer, nullable=False)
-    document_id = Column(String(22), ForeignKey("documents.id"), nullable=False)
-
-    document = relationship("Document", back_populates="sections")
+    def __repr__(self):
+        return f"<User(id={self.id}, username={self.username})>"
 
 
-# old document model
-# class Document(BaseModel):
-#     __tablename__ = "documents"
+class Conversation(BaseModel):
+    __tablename__ = "conversations"
+    user_id = Column(String(22), ForeignKey("users.id"), nullable=False)
+    user = relationship("User", backref="conversations")
 
-#     url = Column(Text, nullable=False, unique=True)
-#     hash = Column(String(64), nullable=False, unique=True)
-#     title = Column(Text, nullable=True)
-#     text = Column(Text)
-#     sections = relationship("Section", back_populates="document")
+    def __repr__(self):
+        return f"<Conversation(id={self.id}, user_id={self.user_id})>"
 
-# old node model
-# class Node(BaseModel):
-#     __tablename__ = "nodes"
 
-#     title = Column(Text, nullable=True)
-#     text = Column(Text)
-#     depth_level = Column(Integer, nullable=False)
-#     parent_id = Column(String(22), ForeignKey("nodes.id"), nullable=True)
+class Message(BaseModel):
+    __tablename__ = "messages"
+    conversation_id = Column(String(22), ForeignKey("conversations.id"), nullable=False)
+    sender = Column(String(50), nullable=False)
+    content = Column(Text, nullable=False)
 
-#     parent = relationship("Node", remote_side=lambda: Node.id, backref="children")
+    conversation = relationship("Conversation", backref="messages")
+
+    def __repr__(self):
+        return f"<Message(id={self.id}, conversation_id={self.conversation_id}, sender={self.sender}, content={self.content})>"

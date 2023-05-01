@@ -14,7 +14,7 @@ from deps import notion
 
 # from services.markdown import test_parse_markdown
 from services.notion import process_page
-from services.openai import fetch_and_save_embeddings, find_closest_sections
+from services.openai import fetch_and_save_embeddings, find_closest_nodes
 
 logger = logging.getLogger(__name__)
 
@@ -35,14 +35,14 @@ def example_background_task():
     return False
 
 
-@router.get("/embedding-test")
-async def embedding_test(session: Session = Depends(get_db_session)):
+@router.get("/embedding-fetch")
+async def embedding_fetch(session: Session = Depends(get_db_session)):
     fetch_and_save_embeddings(session)
 
 
 @router.get("/embedding-run")
 async def embedding_run(session: Session = Depends(get_db_session)):
-    find_closest_sections(session)
+    find_closest_nodes(session)
 
 
 # @router.get("/refactor")
@@ -71,13 +71,13 @@ async def notion_scraper(
     # A list of page IDs that you want to process
     page_ids = [
         # From General
-        "3dac6f4a22a34fac9ff19a210f66833d",
-        "a7287d82fb424de08b13b6ecfdcdd12c",
-        "69658b555ef34447b2f2222b1e1b8a32",
-        "12f8eb4b45ab47ce9d0937f90478618a",
-        "f038d949e4cc4e3ea068afa791081854",
-        "4fb284f5f13041299fd050a1ea40c256",
-        "f5f06b20222343999c84bf65389bb1b0",
+        # "3dac6f4a22a34fac9ff19a210f66833d",
+        # "a7287d82fb424de08b13b6ecfdcdd12c",
+        # "69658b555ef34447b2f2222b1e1b8a32", # still need to pick up a few subpages from here... got to https://www.notion.so/sanogenetics/Study-Delivery-Meeting-ab85e12c67db4e6b97b69c88d65e2c13
+        # "12f8eb4b45ab47ce9d0937f90478618a",
+        # "f038d949e4cc4e3ea068afa791081854",
+        # "4fb284f5f13041299fd050a1ea40c256",
+        # "f5f06b20222343999c84bf65389bb1b0", # still need to pick up a few subpages
         "d50e3d2d19f04c8184e41b11cf35b4a1",
         "7d828fd54e8b40dc84be8780dbf60d78",
         "03c536a0ddba4a33b50a83267c5b2287",
@@ -106,14 +106,14 @@ async def notion_scraper(
         "11074d18e7b74baf9fb3481bb87a55b4",
         "4d01d28a93824bf1abaffa3b7851a13c",
         "f8cb9328e4a0469daf022f5da7745a8f",
-        # "e42323054a484dbeac3f40b7aa8ae51b",  # problematic one
-        # "28fbe227694d4e5fbd2522dd1f9d360c",  # problematic one also potentially
+        # # "e42323054a484dbeac3f40b7aa8ae51b",  # problematic one
+        # # "28fbe227694d4e5fbd2522dd1f9d360c",  # problematic one also potentially
         "c0ccff6484434756aef6cf49d335acec",
         "5bf99ee078a4452a8a08229869987609",
         "cd8cd6c15832483cab2f71fb691e55b4",
         "42738a3b26514945bb270bcf3c6265aa",
-        "5f0a0b731fd843908208e22b50ae8769",
-        "0526acd7872549e99951aa977aee09fe",
+        # "5f0a0b731fd843908208e22b50ae8769",   # problematic one
+        # "0526acd7872549e99951aa977aee09fe",   # problematic one
     ]
 
     # Loop through the page IDs and call the notion2md command
