@@ -58,6 +58,20 @@ class Node(BaseModel):
     document = relationship("Document", back_populates="root_node")
 
 
+class Question(BaseModel):
+    __tablename__ = "questions"
+    username = Column(String(100))
+    body_username = Column(String(100))
+    method = Column(String(50), nullable=False)  # message, app_mention
+    platform = Column(String(50), nullable=False)  # Discord, Telegram, Slack, etc.
+    query_string = Column(Text, nullable=False)
+    stripped_query = Column(Text, nullable=False)
+    context_string = Column(Text, nullable=False)
+    first_completion = Column(Text, nullable=False)
+    second_completion = Column(Text, nullable=False)
+    useful_urls_string = Column(Text, nullable=False)
+
+
 class User(BaseModel):
     __tablename__ = "users"
     username = Column(String(100), nullable=False, unique=True)

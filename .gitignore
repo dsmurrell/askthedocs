@@ -4,4 +4,6 @@ secret_config.py
 __pycache__
 /notion_output
 services/markdown_example.py
+audio_files/
+audio_splits/
 

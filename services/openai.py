@@ -1,3 +1,4 @@
+import datetime
 import re
 import sys
 import time
@@ -7,7 +8,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 from termcolor import colored
 
-from alchemy.models import Node
+from alchemy.models import Node, Question
 from config import config
 from helpers import preprocess_text
 
@@ -24,7 +25,7 @@ def fetch_and_save_embeddings(session: Session):
         sys.stdout.flush()
         if i % 100 == 0:
             print(i)
-        if len(node.text) < 4000:
+        if len(node.text) < 8000:
             # Fetch an embedding for the node
             res = openai.Embedding.create(
                 input=node.text_processed,
@@ -52,8 +53,7 @@ def find_closest_nodes(session: Session, query: str):
     )
     query_embedding = res["data"][0]["embedding"]
 
-    match_count = 10
-    similarity_threshold = 0.75
+    match_count = 8
     similarity_threshold = 0.75
 
     # l2_distance_alias = func.l2_distance(Section.embedding, query_embedding).label(
@@ -83,7 +83,7 @@ def find_closest_nodes(session: Session, query: str):
         select(Node)
         .add_columns(distance_expression.label("distance"))
         # .where(Node.text_length < 3000)
-        .where(and_(Node.text_length < 3000, Node.text_length > 200))
+        .where(and_(Node.text_length < 7700, Node.text_length > 300))
         .order_by(distance_expression)
         .limit(match_count)
     )
@@ -194,15 +194,90 @@ Question:
     return response["choices"][0]["message"]["content"]
 
 
-def get_query_response(session: Session, query_string: str):
+def replace_date_completion(query: str):
+    messages = [
+        {
+            "role": "system",
+            "content": """You are a date finder and converter.""",
+        },
+        {
+            "role": "user",
+            "content": f"""In the question below, can you find any dates and replace them with the format YYYY-MM-DD. If the year isn't specified assume that it is 2023. The respond with the exact same question but with the dates replaced with the format YYYY-MM-DD. Question follows:
+
+{query}
+""",
+        },
+    ]
+
+    print(messages)
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
+    )
+
+    print(response)
+
+    return response["choices"][0]["message"]["content"]
+
+
+# def convert_dates(text):
+#     patterns = [
+#         (
+#             r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})",
+#             "%m/%d/%Y",
+#         ),  # MM/DD/YYYY or MM-DD-YYYY
+#         (
+#             r"(\d{1,2}) (?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[a-z]* (\d{4})",
+#             "%d %B %Y",
+#         ),  # DD Month YYYY
+#         (
+#             r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[a-z]* (\d{1,2})(?:st|nd|rd|th)*,? (\d{4})",
+#             "%B %d %Y",
+#         ),  # Month DD, YYYY
+#     ]
+
+#     def replace_date(match):
+#         for pattern, date_format in patterns:
+#             try:
+#                 date_obj = datetime.strptime(match.group(), date_format)
+#                 return date_obj.strftime("%Y-%m-%d")
+#             except ValueError:
+#                 pass
+#         return match.group()
+
+#     for pattern, _ in patterns:
+#         text = re.sub(pattern, replace_date, text, flags=re.IGNORECASE)
+
+#     return text
+
+
+def get_query_response(session: Session, query_string: str, username: str, type: str):
     # The pattern to match: <@ followed by a combination of uppercase letters and numbers, and then >
     pattern = r"<@[A-Z0-9]+>"
 
-    # Substitute the pattern with an empty string
-    stripped_query = re.sub(pattern, "", query_string)
+    # Search for the pattern and extract it
+    matched_pattern = re.search(pattern, query_string)
+
+    matched_username = None
+    if matched_pattern:
+        matched_username = matched_pattern.group(0)
+        # Substitute the pattern with an empty string
+        stripped_query = re.sub(pattern, "", query_string)
+    else:
+        stripped_query = query_string
+        print("No pattern found in the query string.")
+
+    # # The pattern to match: <@ followed by a combination of uppercase letters and numbers, and then >
+    # pattern = r"<@[A-Z0-9]+>"
+
+    # # Substitute the pattern with an empty string
+    # stripped_query = re.sub(pattern, "", query_string)
 
     # Remove extra whitespace (if any)
     stripped_query = " ".join(stripped_query.split())
+
+    # stripped_query = replace_date_completion(stripped_query)
 
     closest_nodes = find_closest_nodes(session, stripped_query)
 
@@ -226,6 +301,8 @@ def get_query_response(session: Session, query_string: str):
 
     first_completion = get_first_completion(stripped_query, context_string)
 
+    useful_urls_string = ""
+    second_completion = ""
     try:
         second_completion = get_second_completion(stripped_query, context_string)
 
@@ -238,7 +315,6 @@ def get_query_response(session: Session, query_string: str):
         useful_urls = []
         for num in vector_of_ints:
             useful_urls.append(closest_nodes[num - 1].document.url)
-        useful_urls_string = ""
         for url in set(useful_urls):
             useful_urls_string += url + "\n"
 
@@ -247,4 +323,18 @@ def get_query_response(session: Session, query_string: str):
     except:
         pass
 
+    question = Question(
+        username=matched_username,
+        body_username=username,
+        method=type,
+        platform="slack",
+        query_string=query_string,
+        stripped_query=stripped_query,
+        context_string=context_string,
+        first_completion=first_completion,
+        second_completion=second_completion,
+        useful_urls_string=useful_urls_string,
+    )
+    session.add(question)
+    session.commit()
     return first_completion

@@ -17,3 +17,23 @@ notion2md==2.8.2
 markdown-it-py==2.2.0
 nltk==3.8.1
 spacy==3.5.2
+pydub==0.25.1
+tiktoken==0.3.3
+
+# for pyAudioAnalysis
+pyAudioAnalysis==0.3.14
+scipy==1.10.1
+scikit-learn==1.2.2
+hmmlearn==0.3.0
+eyed3==0.9.7
+imbalanced-learn==0.10.1
+plotly==5.14.1
+
+# try another approach
+pyannote.audio-2.1.1
+
+# torch-2.0.0
+# torchaudio-2.0.1
+
+# try another approach
+cython==0.29.34

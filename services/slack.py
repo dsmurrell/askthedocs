@@ -82,16 +82,31 @@ def get_random_response():
 # Listen for messages in the Slack channel
 @app.event("app_mention")
 def command_handler(body, say):
+    handle_message(body, say, "app_mention")
+
+
+# Listen for direct messages
+@app.event("message")
+def dm_handler(body, say):
+    event = body.get("event", {})
+    channel_type = event.get("channel_type")
+
+    if channel_type == "im":
+        handle_message(body, say, "message")
+
+
+def handle_message(body, say, type):
     print(f"got the event: {body}")
     # Extract the message text from the event payload
     query = body["event"]["text"]
+    username = body["event"]["user"]
 
     session = get_db_session().__next__()
 
     say(get_random_response())
 
     # You can add any additional filtering or conditions to respond to specific messages here.
-    response = get_query_response(session, query)
+    response = get_query_response(session, query, username, type)
     print(response)
 
     # Reply in Slack with the message.
