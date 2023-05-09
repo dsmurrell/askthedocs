@@ -11,7 +11,6 @@ from starlette.responses import HTMLResponse, RedirectResponse
 
 from alchemy.database import get_db_session
 from deps import notion
-
 # from services.markdown import test_parse_markdown
 from services.notion import process_page
 from services.openai import fetch_and_save_embeddings, find_closest_nodes

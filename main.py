@@ -50,6 +50,10 @@ async def info(request: Request, call_next):
         f"{request.method} - {request.url.path} - [{str(round(process_time, 3))}]"
     )
     response.headers["X-Process-Time"] = str(process_time)
+    response = response
+
+    x_variable = 14
+
     return response
 
 
@@ -65,8 +69,8 @@ async def startup_event():
 #     # Get an idea of the distribution of text lengths in nodes
 #     if app.state.config["env"] == "local":
 #         print("Plotting text lengths density...")
-        # output_file = "notes/density_plot.png"
-        # plot_text_lengths_density(get_db_session().__next__(), output_file)
+# output_file = "notes/density_plot.png"
+# plot_text_lengths_density(get_db_session().__next__(), output_file)
 
 
 @app.on_event("startup")
