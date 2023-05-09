@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 
 from alchemy.models import Node
 
+# everything here is rubbish
+
 
 def plot_text_lengths_density(session: Session, output_file: str):
     # Query all the nodes from the database
