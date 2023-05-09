@@ -13,7 +13,7 @@ from alchemy.database import get_db_session
 from deps import notion
 
 # from services.markdown import test_parse_markdown
-from services.notion import process_page
+from services.notion import process_page, update_from_notion_export
 from services.openai import fetch_and_save_embeddings, find_closest_nodes
 
 logger = logging.getLogger(__name__)
@@ -62,6 +62,13 @@ async def embedding_run(session: Session = Depends(get_db_session)):
 #     embedding = res["data"][0]["embedding"]
 #     pretty_print_dict(embedding)
 #     print(len(embedding))
+
+
+@router.get("/grab-from-export")
+async def grab_from_export(
+    notion: NotionClient = Depends(notion), session: Session = Depends(get_db_session)
+):
+    update_from_notion_export(session)
 
 
 @router.get("/notion-scraper")

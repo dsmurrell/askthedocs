@@ -1,3 +1,4 @@
+import fnmatch
 import logging
 import os
 import re
@@ -184,3 +185,72 @@ def populate_db_with_nodes(markdown_text: str, session: Session) -> None:
     headers = parse_headers(tokens)
     create_nodes_from_headers(headers, None, session)
     session.commit()
+
+
+def extract_hash_from_filename(filename):
+    match = re.search(r"(\w{32})\.md$", filename)
+    if match:
+        return match.group(1)
+    else:
+        return None
+
+
+# Function to extract text from a markdown file
+def extract_text_from_md(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        return file.read()
+
+
+# Updated save_page_to_database function
+def save_page_to_database(session: Session, page_id, page, text):
+    try:
+        document_hash = compute_hash(page)
+        # Check if the page with the same hash already exists in the database
+        document = session.query(Document).filter_by(hash=document_hash).first()
+
+        if not document:
+            # If the Document object is not found by its hash, try to find it by its URL
+            document = session.query(Document).filter_by(url=page["url"]).first()
+
+        if document:
+            # If the page already exists, update its title, URL, and text
+            document.title = page["properties"]["title"]["title"][0]["plain_text"]
+            document.url = page["url"]
+            document.external_id = page_id
+            document.text = text  # Set text from the passed argument
+        else:
+            # If the page doesn't exist, create a new Document object and add it to the session
+            document = Document(
+                external_id=page_id,
+                url=page["url"],
+                title=page["properties"]["title"]["title"][0]["plain_text"],
+                hash=document_hash,
+                text=text,
+            )
+            session.add(document)
+            session.commit()  # Commit the document to get an ID for the sections
+
+    except Exception:
+        session.rollback()
+        pretty_print_dict(page)
+        logger.warn("Exception hit")
+
+
+def update_from_notion_export(session: Session) -> None:
+    print("got here")
+
+    def find_md_files(directory):
+        md_files = []
+
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                if fnmatch.fnmatch(file, "*.md"):
+                    md_files.append(os.path.join(root, file))
+
+        return md_files
+
+    md_files = find_md_files("./notion_output")
+
+    print("List of .md files:")
+    for file in md_files:
+        print(file)
