@@ -1,5 +1,4 @@
 import logging
-import sys
 import threading
 from time import time
 
@@ -8,13 +7,9 @@ from mangum import Mangum
 from starlette.requests import Request
 
 from alchemy.database import get_db_session
-from alchemy.models import Document, Node
 from alchemy.schema_migration import perform_schema_migrations
 from config import create_app
-from helpers import clean_text, preprocess_text, remove_html_tags
-from plotting import plot_text_lengths_density
 from routes import test
-from services.markdown import update_nodes
 from services.slack import start_slack_bot
 
 logger = logging.getLogger(__name__)
@@ -52,7 +47,6 @@ async def info(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     response = response
 
-    x_variable = 14
 
     return response
 

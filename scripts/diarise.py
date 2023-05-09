@@ -1,4 +1,3 @@
-import numpy as np
 from pyAudioAnalysis import audioSegmentation as aS
 from pydub import AudioSegment
 

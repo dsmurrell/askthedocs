@@ -53,9 +53,6 @@ def find_closest_nodes(session: Session, query: str):
     query_embedding = res["data"][0]["embedding"]
 
     match_count = 8
-    similarity_threshold = (
-        0.75  # try and use a similarity threshold of 0.75 in the query
-    )
 
     query = session.scalars(
         select(Node)
