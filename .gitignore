@@ -3,7 +3,7 @@ secret_config.py
 /notes
 __pycache__
 /notion_output
+/notion_export
 services/markdown_example.py
 audio_files/
 audio_splits/
-

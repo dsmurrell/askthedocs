@@ -38,6 +38,7 @@ class Document(BaseModel):
     text = Column(Text)
     text_no_html = Column(Text)
     root_node = relationship("Node", uselist=False, back_populates="document")
+    tag = Column(Text)  # one of ["notion", "code"]
 
 
 class Node(BaseModel):
