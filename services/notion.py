@@ -48,38 +48,7 @@ def save_page_to_database(session: Session, page_id, page, text):
     except Exception:
         session.rollback()
         pretty_print_dict(page)
-        # raise e
-
-    # try:
-    #     for i, section_text in enumerate(sections):
-    #         section_hash = compute_hash(section_text)
-    #         print(colored(f"Section {i + 1}:", "blue"))
-    #         print(colored(section_text, "green"))
-
-    #         # Check if the section with the same hash already exists in the database
-    #         section = session.query(Section).filter_by(hash=section_hash).first()
-
-    #         if not section:
-    #             # If the section doesn't exist, create a new Section object and add it to the session
-    #             section = Section(
-    #                 text=section_text,
-    #                 document_id=document.id,
-    #                 number=i + 1,
-    #                 hash=section_hash,
-    #             )
-    #             session.add(section)
-    #             session.commit()
-
-    #     # Remove any old sections that are not in the current sections
-    #     session.query(Section).filter(
-    #         Section.document_id == document.id,
-    #         ~Section.hash.in_([compute_hash(s) for s in sections]),
-    #     ).delete(synchronize_session="fetch")
-
-    # except Exception:
-    #     session.rollback()
-    #     pretty_print_dict(page)
-    #     # raise e
+        logger.warn("Exception hit")
 
 
 def read_markdown_file(filename):
@@ -117,36 +86,6 @@ def split_md_sections(md_text, delimiter="##", min_chars=100, max_chars=1000):
     return adjusted_sections
 
 
-# def get_all_child_pages_recursively(notion, page_id):
-#     all_pages = []
-
-#     def get_child_pages(notion, block_id, all_pages):
-#         children = notion.blocks.children.list(block_id)["results"]
-
-#         for child in children:
-#             if child["object"] == "block":
-#                 if child["type"] == "child_page":
-#                     page = notion.pages.retrieve(child["id"])
-#                     all_pages.append(page)
-#                     get_child_pages(notion, child["id"], all_pages)
-#                 elif "children" in child:
-#                     get_child_pages(notion, child["id"], all_pages)
-#                 elif child["type"] == "rich_text" and "text" in child:
-#                     text_content = child["rich_text"][0]["text"]["content"]
-#                     notion_url_pattern = re.compile(r"https:\/\/www.notion.so\/[^ ]+")
-#                     urls = notion_url_pattern.findall(text_content)
-#                     for url in urls:
-#                         response = requests.get(url)
-#                         soup = BeautifulSoup(response.text, "html.parser")
-#                         page_title = soup.title.string.strip()
-#                         page_id = url.split("?")[0].split("-")[-1].replace("v=", "")
-#                         all_pages.append({"id": page_id, "title": page_title})
-#                         get_child_pages(notion, page_id, all_pages)
-
-#     get_child_pages(notion, page_id, all_pages)
-#     return all_pages
-
-
 def get_child_pages(notion, page_id):
     child_pages = []
 
@@ -170,50 +109,12 @@ def get_child_pages(notion, page_id):
     return child_pages
 
 
-def process_page4(session: Session, notion: NotionClient, page_id):
-    # Function to retrieve child pages
-    # def get_child_pages(parent_page_id):
-    #     child_pages = []
-
-    #     # Query the child pages
-    #     children = notion.blocks.children.list(parent_page_id)
-
-    #     while True:
-    #         for child in children["results"]:
-    #             if child["object"] == "block" and child["type"] == "child_page":
-    #                 child_pages.append(child)
-    #             elif child["object"] == "block" and child["has_children"]:
-    #                 child_pages.extend(get_child_pages(child["id"]))
-
-    #         if not children["has_more"]:
-    #             break
-    #         else:
-    #             children = notion.blocks.children.list(
-    #                 parent_page_id, start_cursor=children["next_cursor"]
-    #             )
-
-    #     return child_pages
-
-    # # Fetch the subpages
-    # subpages = get_child_pages(page_id)
-
-    # # Print the results
-    # print("Subpages within the Notion page:")
-    # for subpage in subpages:
-    #     print(f"{subpage['id']}")
-    #     pretty_print_dict(subpage)
-    pass
-
-
 def process_page(session: Session, notion: NotionClient, page_id):
     sleep(1)
     print(colored(f"Processing page with ID: {page_id}", "green"))
     try:
         page = notion.pages.retrieve(page_id)
         print(page["url"])
-
-        # pretty_print_dict(page)
-        # print(page)
 
         output_dir = "notion_output"
         output_file = f"{output_dir}/{page_id}.md"
@@ -227,48 +128,8 @@ def process_page(session: Session, notion: NotionClient, page_id):
         print(colored(f"Error retrieving page with ID: {page_id}", "red"))
         return
 
-    # sections = split_md_sections(text, delimiter="#")
-    # print(sections)
-
-    # md_parser = MarkdownIt()
-
-    # for i, section in enumerate(sections):
-    #     print(f"Section {i + 1}:")
-    #     print(md_parser.render(section))
-    #     print()
-
-    # print("------")
-
     # Save the page and sections to your database
     save_page_to_database(session, page_id, page, text)
-
-    # # This process could be highly flawed
-    # # Recurse through the subpages
-    # block_children = notion.blocks.children.list(page_id)["results"]
-    # # pretty_print_dict(block_children)
-    # # print(block_children)
-    # for block in block_children:
-    #     pretty_print_dict(block)
-    #     # if block["type"] == "child_page":
-    #     #     child_page_id = block["id"]
-    #     #     process_page(session, notion, child_page_id)
-
-    # # Get all child pages of the parent page
-    # children = notion.pages.children.list(parent=page_id).get("results")
-
-    # for child in children:
-    #     if page.get("object") == "page":
-    #         process_page(session, notion, child["id"])
-
-    # # Recursively get all subpages of the parent page
-    # def get_all_subpages(page):
-    #     if page.get("object") == "page":
-    #         subpages = notion.pages.children.list(parent=page["id"]).get("results")
-    #         for subpage in subpages:
-    #             children.append(subpage)
-    #             get_all_subpages(subpage)
-
-    # get_all_subpages(parent_page)
 
     for child in get_child_pages(notion, page_id):
         process_page(session, notion, child["id"])
@@ -277,6 +138,7 @@ def process_page(session: Session, notion: NotionClient, page_id):
 md = MarkdownIt()
 
 
+# takes a list of Token objects (produced by the MarkdownIt library) and returns a list of dictionaries, where each dictionary represents a header in the Markdown text. Each dictionary has two keys: level (the header's depth) and content (the header's text).
 def parse_headers(tokens: List[Token]) -> List[Dict[str, Optional[str]]]:
     headers = []
     current_header = None
@@ -320,7 +182,5 @@ def create_nodes_from_headers(
 def populate_db_with_nodes(markdown_text: str, session: Session) -> None:
     tokens = md.parse(markdown_text)
     headers = parse_headers(tokens)
-    create_nodes_from_headers(headers, None, session)
-    session.commit()
     create_nodes_from_headers(headers, None, session)
     session.commit()

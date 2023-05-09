@@ -1,4 +1,3 @@
-import datetime
 import re
 import sys
 import time
@@ -54,25 +53,14 @@ def find_closest_nodes(session: Session, query: str):
     query_embedding = res["data"][0]["embedding"]
 
     match_count = 8
-    similarity_threshold = 0.75
-
-    # l2_distance_alias = func.l2_distance(Section.embedding, query_embedding).label(
-    #     "l2_distance"
-    # )
-
-    # query = session.scalars(
-    #     select(Section, l2_distance_alias)
-    #     .where(l2_distance_alias <= match_threshold)
-    #     .order_by(l2_distance_alias)
-    #     .limit(match_count)
-    # )
-
-    1 - similarity_threshold
+    similarity_threshold = (
+        0.75  # try and use a similarity threshold of 0.75 in the query
+    )
 
     query = session.scalars(
         select(Node)
-        # .where(Node.embedding.l2_distance(query_embedding) <= distance_threshold)
-        .order_by(Node.embedding.l2_distance(query_embedding)).limit(match_count)
+        .order_by(Node.embedding.l2_distance(query_embedding))
+        .limit(match_count)
     )
 
     # Define the distance expression
@@ -82,7 +70,6 @@ def find_closest_nodes(session: Session, query: str):
     query = session.execute(
         select(Node)
         .add_columns(distance_expression.label("distance"))
-        # .where(Node.text_length < 3000)
         .where(and_(Node.text_length < 7700, Node.text_length > 300))
         .order_by(distance_expression)
         .limit(match_count)
@@ -100,30 +87,14 @@ def find_closest_nodes(session: Session, query: str):
         print("Node Distance:", colored(distance, "green"))
         print("Node Text Length:", colored(node.text_length, "green"))
         print("Node Text Cleaned:", colored(node.text_cleaned, "yellow"))
-        # print(node.text)
         print("----------------------------------------")
 
-    # query = None
-
-    # # Look up the match_count nodes with an embedding closest to the query embedding
-    # query = session.scalars(
-    #     select(Node)
-    #     .order_by(Node.embedding.l2_distance(query_embedding))
-    #     .limit(match_count)
-    # )
-
     # Execute the query and fetch the results
-    closest_nodes = [node for (node, distance) in query_results]
+    closest_nodes = [node for (node, _) in query_results]
 
     total_word_count = sum(len(node.text.split()) for node in closest_nodes)
 
     print(f"Total word count: {total_word_count}")
-
-    # # Print the results
-    # for node in closest_nodes:
-    #     print(f"Node at distance: {node.embedding.l2_distance(query_embedding)}")
-    #     print(colored(node.text, "green"))
-    #     print("----------------------------------------")
 
     return closest_nodes
 
@@ -221,37 +192,6 @@ def replace_date_completion(query: str):
     return response["choices"][0]["message"]["content"]
 
 
-# def convert_dates(text):
-#     patterns = [
-#         (
-#             r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})",
-#             "%m/%d/%Y",
-#         ),  # MM/DD/YYYY or MM-DD-YYYY
-#         (
-#             r"(\d{1,2}) (?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[a-z]* (\d{4})",
-#             "%d %B %Y",
-#         ),  # DD Month YYYY
-#         (
-#             r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[a-z]* (\d{1,2})(?:st|nd|rd|th)*,? (\d{4})",
-#             "%B %d %Y",
-#         ),  # Month DD, YYYY
-#     ]
-
-#     def replace_date(match):
-#         for pattern, date_format in patterns:
-#             try:
-#                 date_obj = datetime.strptime(match.group(), date_format)
-#                 return date_obj.strftime("%Y-%m-%d")
-#             except ValueError:
-#                 pass
-#         return match.group()
-
-#     for pattern, _ in patterns:
-#         text = re.sub(pattern, replace_date, text, flags=re.IGNORECASE)
-
-#     return text
-
-
 def get_query_response(session: Session, query_string: str, username: str, type: str):
     # The pattern to match: <@ followed by a combination of uppercase letters and numbers, and then >
     pattern = r"<@[A-Z0-9]+>"
@@ -267,12 +207,6 @@ def get_query_response(session: Session, query_string: str, username: str, type:
     else:
         stripped_query = query_string
         print("No pattern found in the query string.")
-
-    # # The pattern to match: <@ followed by a combination of uppercase letters and numbers, and then >
-    # pattern = r"<@[A-Z0-9]+>"
-
-    # # Substitute the pattern with an empty string
-    # stripped_query = re.sub(pattern, "", query_string)
 
     # Remove extra whitespace (if any)
     stripped_query = " ".join(stripped_query.split())
