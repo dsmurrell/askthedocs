@@ -60,13 +60,13 @@ async def startup_event():
     bot_thread.start()
 
 
-@app.on_event("startup")
-async def plot_density():
-    # Get an idea of the distribution of text lengths in nodes
-    if app.state.config["env"] == "local":
-        print("Plotting text lengths density...")
-        output_file = "notes/density_plot.png"
-        plot_text_lengths_density(get_db_session().__next__(), output_file)
+# @app.on_event("startup")
+# async def plot_density():
+#     # Get an idea of the distribution of text lengths in nodes
+#     if app.state.config["env"] == "local":
+#         print("Plotting text lengths density...")
+        # output_file = "notes/density_plot.png"
+        # plot_text_lengths_density(get_db_session().__next__(), output_file)
 
 
 @app.on_event("startup")
