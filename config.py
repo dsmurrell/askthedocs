@@ -25,7 +25,6 @@ def get_config():
     # DEFAULT CONFIG
     config = {
         "env": "local",
-        "connection_string": "postgresql://simon:Irw5cDeOlCF3@ep-dark-bird-751763.eu-central-1.aws.neon.tech/askthedocs",
     }
 
     # SECRET CONFIG
