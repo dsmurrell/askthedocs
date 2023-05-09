@@ -42,9 +42,8 @@ async def info(request: Request, call_next):
     response = await call_next(request)
     process_time = time() - start_time
     logger.info(
-        f"{request.method} - {request.url.path} - [{str(round(process_time, 3))}]"
-    )
     response.headers["X-Process-Time"] = str(process_time)
+    return response
     response = response
 
 
