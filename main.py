@@ -65,8 +65,8 @@ async def startup_event():
 #     # Get an idea of the distribution of text lengths in nodes
 #     if app.state.config["env"] == "local":
 #         print("Plotting text lengths density...")
-        # output_file = "notes/density_plot.png"
-        # plot_text_lengths_density(get_db_session().__next__(), output_file)
+# output_file = "notes/density_plot.png"
+# plot_text_lengths_density(get_db_session().__next__(), output_file)
 
 
 @app.on_event("startup")
@@ -93,7 +93,7 @@ async def test():
         # nodes = session.query(Node).all()
         # print(len(nodes))
         # for i, node in enumerate(nodes):
-        #     # node.text_processed = preprocess_text(node.text)
+        #     node.text_processed = preprocess_text(node.text)
         #     node.text_cleaned = clean_text(node.text)
         #     if i % 100 == 0:
         #         print(i)

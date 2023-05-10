@@ -250,10 +250,12 @@ def get_query_response(session: Session, query_string: str, username: str, type:
         for num in vector_of_ints:
             useful_urls.append(closest_nodes[num - 1].document.url)
         for url in set(useful_urls):
-            useful_urls_string += url + "\n"
+            url = url.replace("-", "")
+            useful_urls_string += f"https://www.notion.so/sanogenetics/{url}" + "\n"
 
         if "sorry" not in first_completion.lower():
             first_completion += "\n\n" + "Source:\n" + useful_urls_string
+
     except:
         pass
 

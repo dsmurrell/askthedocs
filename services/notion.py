@@ -187,8 +187,16 @@ def populate_db_with_nodes(markdown_text: str, session: Session) -> None:
     session.commit()
 
 
+# def extract_hash_from_filename(filename):
+#     match = re.search(r"(\w{32})\.md$", filename)
+#     if match:
+#         return match.group(1)
+#     else:
+#         return None
+
+
 def extract_hash_from_filename(filename):
-    match = re.search(r"(\w{32})\.md$", filename)
+    match = re.search(r"(\w{32}|[\w-]{36})\.md$", filename)
     if match:
         return match.group(1)
     else:
@@ -202,37 +210,39 @@ def extract_text_from_md(file_path):
 
 
 # Updated save_page_to_database function
-def save_page_to_database(session: Session, page_id, page, text):
+def save_page_to_database_export(session: Session, page_id, text):
     try:
-        document_hash = compute_hash(page)
+        document_hash = compute_hash(text)
         # Check if the page with the same hash already exists in the database
         document = session.query(Document).filter_by(hash=document_hash).first()
 
         if not document:
             # If the Document object is not found by its hash, try to find it by its URL
-            document = session.query(Document).filter_by(url=page["url"]).first()
+            document = session.query(Document).filter_by(url=page_id).first()
 
         if document:
             # If the page already exists, update its title, URL, and text
-            document.title = page["properties"]["title"]["title"][0]["plain_text"]
-            document.url = page["url"]
+            document.title = "No title"
+            document.url = page_id
             document.external_id = page_id
             document.text = text  # Set text from the passed argument
+            document.tag = "notion"
         else:
             # If the page doesn't exist, create a new Document object and add it to the session
             document = Document(
                 external_id=page_id,
-                url=page["url"],
-                title=page["properties"]["title"]["title"][0]["plain_text"],
+                url=page_id,
+                title="No title",
                 hash=document_hash,
                 text=text,
+                tag="notion",
             )
             session.add(document)
             session.commit()  # Commit the document to get an ID for the sections
 
     except Exception:
         session.rollback()
-        pretty_print_dict(page)
+        print(page_id)
         logger.warn("Exception hit")
 
 
@@ -251,6 +261,14 @@ def update_from_notion_export(session: Session) -> None:
 
     md_files = find_md_files("./notion_output")
 
-    print("List of .md files:")
-    for file in md_files:
-        print(file)
+    # Assuming you have a list of .md files in `md_files`
+    for md_file in md_files:
+        text = extract_text_from_md(md_file)
+        filename = os.path.basename(md_file)
+        page_id = extract_hash_from_filename(filename)
+
+        if page_id:
+            # Call save_page_to_database with the extracted text and page_id
+            save_page_to_database_export(session, page_id, text)
+        else:
+            print(f"Could not extract hash from filename: {filename}")
