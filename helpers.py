@@ -208,6 +208,7 @@ def remove_html_tags(text):
 import re
 
 
+# Func
 def clean_text(text):
     # Remove lines with specific patterns
     # remove this type of pattern [//]: # (child_page is not supported)
@@ -233,5 +234,6 @@ def clean_text(text):
 
     # Remove extra newlines
     text = re.sub(r"\n{3,}", "\n\n", text)
+    # End Comment
 
     return text
